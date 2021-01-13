@@ -1,4 +1,4 @@
-import numpy as np
+import argparse
 import os
 import os.path as osp
 import random
@@ -6,6 +6,7 @@ import shutil
 
 from PIL import Image
 from matplotlib import pyplot as plt
+import numpy as np
 import torch
 import torchvision
 
@@ -40,6 +41,7 @@ def create_dirs():
             source_path = osp.join(root_dir, c, image)
             target_path = osp.join(root_dir, 'test', c, image)
             shutil.move(source_path, target_path)
+
 
 class ChestXRayDataset(torch.utils.data.Dataset):
     def __init__(self, image_dirs, transform):
@@ -90,15 +92,18 @@ def show_images(images, labels, preds):
     plt.tight_layout()
     plt.show()
 
+
 def show_preds(model, dl):
     model.eval()
     images, labels = next(iter(dl))
     outputs = model(images)
     _, preds = torch.max(outputs, 1)
-    # show_images(images, labels, preds)
+    # comment this out for testing purposes...
+    show_images(images, labels, preds)
 
-def train(epochs):
-    # training data
+
+# copypasta
+def build_train_dl(batch_size=6):
     train_transform = torchvision.transforms.Compose([
         torchvision.transforms.Resize(size=PIC_SIZE),
         torchvision.transforms.RandomHorizontalFlip(),
@@ -111,12 +116,14 @@ def train(epochs):
         'covid': 'COVID-19 Radiography Database/covid'
     }
     train_dataset = ChestXRayDataset(train_dirs, train_transform)
-    class_names = train_dataset.class_names
 
     batch_size = 6
     dl_train = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    return dl_train
 
-    # test data
+
+# copypasta
+def build_test_dl(batch_size=6):
     test_transform = torchvision.transforms.Compose([
         torchvision.transforms.Resize(size=PIC_SIZE),
         torchvision.transforms.ToTensor(),
@@ -130,9 +137,19 @@ def train(epochs):
     }
     test_dataset = ChestXRayDataset(test_dirs, test_transform)
     dl_test = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+    return dl_test
 
-    resnet18 = torchvision.models.resnet18(pretrained=True)
-    resnet18.fc = torch.nn.Linear(in_features=512, out_features=3)
+
+def initialize_model():
+    r18 = torchvision.models.resnet18(pretrained=True)
+    r18.fc = torch.nn.Linear(in_features=512, out_features=3)
+    return r18
+
+def train(epochs):
+    dl_train = build_train_dl()
+    dl_test = build_test_dl()
+
+    resnet18 = initialize_model()
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(resnet18.parameters(), lr=3e-5)
 
@@ -172,23 +189,62 @@ def train(epochs):
                     accuracy += sum((preds == labels).numpy())
 
                 val_loss /= (val_step + 1)
-                accuracy = accuracy/len(test_dataset)
+                accuracy = accuracy/len(dl_test.dataset)
                 print(f'Validation Loss: {val_loss:.4f}, Accuracy: {accuracy:.4f}')
 
-                show_preds(resnet18, dl_test)
+                # this visualizes training progress, but is annoying
+                # since the script blocks waiting for the user to
+                # close the graph window here.
+                # show_preds(resnet18, dl_test)
 
                 resnet18.train()
-
                 if accuracy >= 0.95:
                     print('Performance condition satisfied, stopping..')
-                    return
+                    return resnet18
 
         train_loss /= (train_step + 1)
 
         print(f'Training Loss: {train_loss:.4f}')
+        return resnet18
+
+
+def save_model(model, fpath):
+    torch.save(model.state_dict(), fpath)
+
+
+def load_model(model, fpath):
+    model.load_state_dict(torch.load(fpath))
+
+
+def train_model_command(args):
+    model = train(args.epochs)
+    if (args.o):
+        print(f"saving model to path {args.o}")
+        save_model(model, args.o)
+
+
+def load_model_command(args):
+    model = initialize_model()
+    load_model(model, args.path)
+    dl = build_test_dl()
+    show_preds(model, dl)
+
+
+def make_parser():
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers()
+    load_parser = subparsers.add_parser('load', help="load a model at the given location")
+    load_parser.add_argument("path", help="path to load model from")
+    load_parser.set_defaults(func=load_model_command)
+
+    train_parser = subparsers.add_parser('train', help='train a model')
+    train_parser.add_argument("-o", help="path to save model to")
+    train_parser.add_argument("-e", "--epochs", default=1, help="number of epochs to train for", type=int)
+    train_parser.set_defaults(func=train_model_command)
+    return parser
 
 
 if __name__  == '__main__':
-    print('Using PyTorch version', torch.__version__)
-    train(epochs=1)
-    print('Training complete.')
+    parser = make_parser()
+    args = parser.parse_args()
+    args.func(args)
