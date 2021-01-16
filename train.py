@@ -247,4 +247,8 @@ def make_parser():
 if __name__  == '__main__':
     parser = make_parser()
     args = parser.parse_args()
-    args.func(args)
+
+    if hasattr(args, 'func'):
+        args.func(args)
+    else:
+        parser.print_help()
