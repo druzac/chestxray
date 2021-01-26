@@ -215,7 +215,6 @@ def save_model(model, fpath):
 def load_model(model, fpath):
     model.load_state_dict(torch.load(fpath))
 
-
 def train_model_command(args):
     model = train(args.epochs)
     if (args.o):
