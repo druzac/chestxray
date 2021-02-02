@@ -1,10 +1,34 @@
-<title>Fnord</title>
-<section class="content">
-  <header>
-    <h1>This is my header.</h1>
-  </header>
-  <form method="post" action="/image" enctype="multipart/form-data">
-    <input type="file" name="image_file">
-    <input type="submit" value="Upload Image">
-  </form>
-</section>
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>CodePen - CNN upload page2</title>
+  <link rel="stylesheet" type=text/css href="{{ url_for('static', filename='style.css') }}">
+<!-- <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}"> -->
+</head>
+<body>
+<head>
+  <meta charset="UTF-8">
+  <title>weird stylized drag drop file upload button (HTML &amp; CSS ONLY)</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+  
+<body>
+<!-- partial:index.partial.html -->
+<form action="/image" method="POST" enctype="multipart/form-data">
+  <input type="file" name="image_file">
+  <p>Drag your files here or click in this area.</p>
+  <button type="submit">Upload</button>
+</form>
+
+<!-- partial -->
+<script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+<!-- partial -->
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>

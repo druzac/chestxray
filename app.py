@@ -42,7 +42,12 @@ def build_test_dl(image):
 
 def do_file_stuff():
     if 'image_file' not in request.files:
+        print(f"files looks like: {dir(request.files)}")
+        print(f"it has type: {type(request.files)}")
         print("argh, no file!")
+        print(f"length is: {len(request.files)}")
+        for blah in request.files:
+            print(f"has type {type(blah)}")
         return "oops, we messed up"
     # flash('No file part')
     f = request.files['image_file']
@@ -73,6 +78,6 @@ def do_file_stuff():
 def image():
     return do_file_stuff()
 
-@app.route('/', methods=('GET', 'POST'))
+@app.route('/', methods=['GET'])
 def main():
     return render_template("index.html")
